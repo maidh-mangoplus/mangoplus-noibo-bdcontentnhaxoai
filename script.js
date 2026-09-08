@@ -1,5 +1,5 @@
 const API_PUBLIC = 'https://script.google.com/macros/s/AKfycbyktydEQG7lUl4afO6IaHuYS1Sc_4ouZ69Rg1izyEHnszrPSRNLLMWaFE4gGEBzXxvmTA/exec';
-const API_REPORT = 'https://script.google.com/a/macros/mangoplus.vn/s/AKfycbyjnS6bxAYEA5sJ4OyDdv2HEzOt3CPcvP477FbnWs3s4cKdfJ7Dj5MUMUQACo0aQ1xS0w/exec'; // URL của apps-script-noibo.gs sau khi deploy
+const API_REPORT = 'https://script.google.com/macros/s/AKfycbyjnS6bxAYEA5sJ4OyDdv2HEzOt3CPcvP477FbnWs3s4cKdfJ7Dj5MUMUQACo0aQ1xS0w/exec'; // URL của apps-script-noibo.gs sau khi deploy
 
 const RANK_CLASS = { 'S+': 'rank-splus', 'S': 'rank-s', 'A+': 'rank-aplus', 'A': 'rank-a' };
 const STATUS_CLASS = { 'Mới ra mắt': 'status-new', 'Đang phát sóng': 'status-live' };
