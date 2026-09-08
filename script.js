@@ -1,5 +1,5 @@
-const API_URL = 'https://script.google.com/macros/s/AKfycbwqKTYIwGcieaIzhGc2ohMEiC2A0rUm0ZZA2RErJCcdBLmKQOPknkbZYGuGNeBZ1C2Y/exec';
-const REPORT_KEY = 'bdnhaxoai'; // phải khớp đúng với REPORT_KEY trong Apps Script
+const API_PUBLIC = 'https://script.google.com/macros/s/AKfycbwqKTYIwGcieaIzhGc2ohMEiC2A0rUm0ZZA2RErJCcdBLmKQOPknkbZYGuGNeBZ1C2Y/exec';
+const API_REPORT = 'https://script.google.com/a/macros/mangoplus.vn/s/AKfycbyKHYixkg1Ey-1Q8CXmNxTbNSlk2QfXMZjIPTNW_Fd7hKPUUs7zKRc_ZaBN39UnoBZS/exec'; // URL của apps-script-noibo.gs sau khi deploy
 
 const RANK_CLASS = { 'S+': 'rank-splus', 'S': 'rank-s', 'A+': 'rank-aplus', 'A': 'rank-a' };
 const STATUS_CLASS = { 'Mới ra mắt': 'status-new', 'Đang phát sóng': 'status-live' };
@@ -8,17 +8,14 @@ const BAR_CLASS = { 'Show': 'bar-show', 'Phim': 'bar-phim', 'Short': 'bar-short'
 const GROUP_TAG_CLASS = { 'Show': 'g-show', 'Phim': 'g-phim', 'Short': 'g-short' };
 
 let allData = [];
-let reportData = [];
+let upcomingData = [];
+let top10Data = [];
 let state = { group: 'all', excl: false, newOnly: false, search: '' };
 let history = [{ view: 'tongquan', focusId: null, scrollY: 0 }];
 let historyIndex = 0;
 
-const REPORT_ACCESS = new URLSearchParams(location.search).get('report') === '1';
-
 function normalize(str) {
-  return (str || '').toString().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/đ/g, 'd');
+  return (str || '').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd');
 }
 function matches(item) {
   if (state.group !== 'all' && item.nhom !== state.group) return false;
@@ -89,13 +86,12 @@ function cardHtml(item) {
         (item.trailerUrl ? '<button class="trailer-btn" data-trailer-id="' + item.id + '">▶ Xem trailer</button>' : '') +
       '</div>' +
       '<button class="more-btn" data-more="' + item.id + '">Xem thêm ▾</button>' +
-    '</div>' +
-  '</div>';
+    '</div></div>';
 }
 function renderChiTiet() {
   document.getElementById('grid-chitiet').innerHTML = allData.filter(matches).map(cardHtml).join('') ||
     '<div class="state-msg">Không tìm thấy nội dung phù hợp.</div>';
-  bindCardEvents();
+  bindDetailEvents();
   requestAnimationFrame(equalizeBodyHeights);
 }
 function equalizeBodyHeights() {
@@ -117,20 +113,21 @@ function toggleMore(id, forceOpen) {
   extra.style.display = opening ? 'block' : 'none';
   if (btn) btn.textContent = opening ? 'Thu gọn ▴' : 'Xem thêm ▾';
 }
-function bindCardEvents() {
-  document.querySelectorAll('[data-more]').forEach(btn => btn.addEventListener('click', () => toggleMore(btn.dataset.more)));
+function bindDetailEvents() {
+  document.querySelectorAll('#grid-chitiet [data-more]').forEach(btn => btn.addEventListener('click', () => toggleMore(btn.dataset.more)));
   document.querySelectorAll('#grid-chitiet [data-trailer-id]').forEach(btn => btn.addEventListener('click', () => {
     const item = allData.find(d => String(d.id) === btn.dataset.trailerId);
     if (item) openTrailerModal(item.trailerUrl);
   }));
 }
 
-// ---- Tổng quan (Top 10 + lưới nhóm) ----
-function top10ItemHtml(item, i) {
+// ---- Tổng quan: Top thịnh hành + lưới nhóm ----
+function trendingItemHtml(item, i) {
   const cls = matches(item) ? '' : ' dimmed';
-  return '<div class="top10-item' + cls + '" data-nav="' + item.id + '" style="animation-delay:' + (i * 0.05) + 's">' +
-    '<span class="top10-num">' + item.top10 + '</span>' +
-    '<div class="top10-poster">' + (item.posterDoc ? '<img src="' + item.posterDoc + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</div>' +
+  return '<div class="trending-item' + cls + '" data-nav="' + item.id + '" style="animation-delay:' + (i * 0.05) + 's">' +
+    '<div class="trending-poster">' + (item.posterDoc ? '<img src="' + item.posterDoc + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</div>' +
+    '<div class="trending-title">' + item.ten + '</div>' +
+    '<div class="trending-usp">' + (item.usp || '') + '</div>' +
   '</div>';
 }
 function miniCardHtml(item, i) {
@@ -143,11 +140,10 @@ function miniCardHtml(item, i) {
   '</div>';
 }
 function renderTongQuan() {
-  const top10 = allData.filter(d => d.top10).sort((a, b) => a.top10 - b.top10);
-  document.getElementById('top10-row1').innerHTML = top10.slice(0, 5).map((it, i) => top10ItemHtml(it, i)).join('');
-  document.getElementById('top10-row2').innerHTML = top10.slice(5, 10).map((it, i) => top10ItemHtml(it, i + 5)).join('');
-  document.getElementById('top10Wrap').style.display = top10.length ? '' : 'none';
-  document.querySelector('.top10-heading').style.display = top10.length ? '' : 'none';
+  const trending = allData.filter(d => d.usp && d.usp.trim());
+  document.getElementById('trendingScroll').innerHTML = trending.map((it, i) => trendingItemHtml(it, i)).join('');
+  document.querySelector('.trending-header').style.display = trending.length ? '' : 'none';
+  document.querySelector('.trending-wrap').style.display = trending.length ? '' : 'none';
 
   const filtered = allData.filter(matches);
   const html = GROUPS.map(g => {
@@ -158,29 +154,33 @@ function renderTongQuan() {
   }).join('');
   document.getElementById('overview-groups').innerHTML = html || '<div class="state-msg">Không tìm thấy nội dung phù hợp.</div>';
 
-  document.querySelectorAll('[data-nav]').forEach(el => {
+  document.querySelectorAll('#view-tongquan [data-nav]').forEach(el => {
     el.addEventListener('click', () => navigate({ view: 'chitiet', focusId: parseInt(el.dataset.nav), scrollY: 0 }));
   });
+  setTimeout(updateTrendArrows, 50);
 }
-
-// ---- Scheme ----
-function renderScheme(schemeHtml) {
-  const box = document.getElementById('schemeContent');
-  if (!schemeHtml || !schemeHtml.trim()) {
-    box.style.display = 'none';
-  } else {
-    box.style.display = '';
-    box.innerHTML = schemeHtml;
-  }
+document.getElementById('trend-prev').addEventListener('click', () => document.getElementById('trendingScroll').scrollBy({ left: -380, behavior: 'smooth' }));
+document.getElementById('trend-next').addEventListener('click', () => document.getElementById('trendingScroll').scrollBy({ left: 380, behavior: 'smooth' }));
+function updateTrendArrows() {
+  const el = document.getElementById('trendingScroll');
+  document.getElementById('trend-prev').style.display = el.scrollLeft > 10 ? 'flex' : 'none';
+  document.getElementById('trend-next').style.display = (el.scrollLeft + el.clientWidth < el.scrollWidth - 10) ? 'flex' : 'none';
 }
+document.getElementById('trendingScroll').addEventListener('scroll', updateTrendArrows);
+window.addEventListener('resize', updateTrendArrows);
 
-// ---- Report ----
+// ---- Report: Top 10 + danh sách Sắp ra mắt ----
+function top10ItemHtml(item, i) {
+  return '<div class="top10-item" data-nav-title="' + encodeURIComponent(item.ten) + '" style="animation-delay:' + (i * 0.05) + 's">' +
+    '<span class="top10-num">' + item.top10 + '</span>' +
+    '<div class="top10-poster">' + (item.posterDoc ? '<img src="' + item.posterDoc + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</div>' +
+  '</div>';
+}
 function reportRowHtml(item) {
   return '<div class="report-row">' +
-    '<div class="report-poster-wrap">' +
-      '<div class="report-poster">' +   (item.docQuyen ? '<div class="excl-badge">Độc quyền</div>' : '') +   (item.posterDoc ? '<img src="' + item.posterDoc + '" alt="" loading="lazy" onerror="this.remove()">' : '') + '</div>' +
-      '<div class="report-air"><strong>' + (item.ngayAir || '—') + '</strong>Dự kiến air</div>' +
-    '</div>' +
+    '<div class="report-poster-wrap"><div class="report-poster">' +
+      (item.posterDoc ? '<img src="' + item.posterDoc + '" alt="" loading="lazy" onerror="this.remove()">' : '') +
+      '</div><div class="report-air"><strong>' + (item.ngayAir || '—') + '</strong>Dự kiến air</div></div>' +
     '<div class="report-box">' +
       '<div class="tag-row">' +
         '<span class="tag ' + (GROUP_TAG_CLASS[item.nhom] || '') + '">' + item.nhom + '</span>' +
@@ -194,16 +194,41 @@ function reportRowHtml(item) {
       pointsHtml(item) +
       '<div class="extra-fields" id="report-extra-' + item.id + '" style="display:none">' +
         (item.luuY ? '<p class="luuy">' + item.luuY + '</p>' : '') +
-        (item.trailerUrl ? '<button class="trailer-btn" data-trailer-id="' + item.id + '">▶ Xem trailer</button>' : '') +
+        (item.trailerUrl ? '<button class="trailer-btn" data-trailer-report="' + item.id + '">▶ Xem trailer</button>' : '') +
       '</div>' +
       '<button class="more-btn" data-more-report="' + item.id + '">Xem thêm ▾</button>' +
-    '</div>' +
-  '</div>';
+    '</div></div>';
+}
+function parseDateVN(str) {
+  if (!str) return Infinity;
+  const parts = String(str).split('/');
+  if (parts.length !== 3) return Infinity; // chữ tự do (vd "Tháng 9") -> xếp cuối danh sách
+  const [d, m, y] = parts.map(Number);
+  if (!d || !m || !y) return Infinity;
+  return new Date(y, m - 1, d).getTime();
 }
 function renderReport() {
-  const sorted = reportData.filter(matches).sort((a, b) => parseDateVN(a.ngayAir) - parseDateVN(b.ngayAir));
+  const hasTop10 = top10Data.length > 0;
+  document.getElementById('reportTop10Wrap').style.display = hasTop10 ? '' : 'none';
+  if (hasTop10) {
+    document.getElementById('top10-row1').innerHTML = top10Data.slice(0, 5).map((it, i) => top10ItemHtml(it, i)).join('');
+    document.getElementById('top10-row2').innerHTML = top10Data.slice(5, 10).map((it, i) => top10ItemHtml(it, i + 5)).join('');
+    document.querySelectorAll('#top10-row1 [data-nav-title], #top10-row2 [data-nav-title]').forEach(el => {
+      el.addEventListener('click', () => {
+        const ten = decodeURIComponent(el.dataset.navTitle);
+        const item = allData.find(d => d.ten === ten);
+        if (item) navigate({ view: 'chitiet', focusId: item.id, scrollY: 0 });
+      });
+    });
+  }
+  const capEl = document.getElementById('top10Caption');
+  if (window.__top10Note && window.__top10Note.trim()) {
+    capEl.textContent = window.__top10Note; capEl.style.display = '';
+  } else { capEl.style.display = 'none'; }
+
+  const sorted = upcomingData.filter(matches).sort((a, b) => parseDateVN(a.ngayAir) - parseDateVN(b.ngayAir));
   document.getElementById('reportList').innerHTML = sorted.map(reportRowHtml).join('') ||
-    '<div class="state-msg">Không tìm thấy nội dung phù hợp.</div>';
+    '<div class="state-msg">Chưa có nội dung sắp ra mắt.</div>';
   document.querySelectorAll('[data-more-report]').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.moreReport;
@@ -217,52 +242,30 @@ function renderReport() {
       btn.textContent = opening ? 'Thu gọn ▴' : 'Xem thêm ▾';
     });
   });
-  document.querySelectorAll('#reportList [data-trailer-id]').forEach(btn => btn.addEventListener('click', () => {
-    const item = reportData.find(d => String(d.id) === btn.dataset.trailerId);
+  document.querySelectorAll('[data-trailer-report]').forEach(btn => btn.addEventListener('click', () => {
+    const item = upcomingData.find(d => String(d.id) === btn.dataset.trailerReport);
     if (item) openTrailerModal(item.trailerUrl);
   }));
 }
 
-function refreshCurrentView() {
-  const v = currentView();
-  if (v === 'chitiet') renderChiTiet();
-  else if (v === 'tongquan') renderTongQuan();
-  else if (v === 'report') renderReport();
-}
-function parseDateVN(str) {
-  if (!str) return Infinity;
-  const [d, m, y] = str.split('/').map(Number);
-  if (!d || !m || !y) return Infinity;
-  return new Date(y, m - 1, d).getTime();
-}
-
-// ---- Trailer modal: nhúng YouTube/Drive thật, video luôn nằm trong khung nền be ----
+// ---- Trailer modal ----
 function extractYoutubeId(url) {
   const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{11})/);
   return m ? m[1] : null;
 }
-function extractDriveId(url) {
-  const m = String(url).match(/[-\w]{25,}/);
-  return m ? m[0] : null;
-}
+function extractDriveId(url) { const m = String(url).match(/[-\w]{25,}/); return m ? m[0] : null; }
 function openTrailerModal(url) {
   const embedArea = document.getElementById('trailer-embed-area');
   const fallback = document.getElementById('trailer-fallback-link');
   let inner;
-  if (!url) {
-    inner = '<div class="trailer-embed">Chưa có trailer</div>';
-    fallback.style.display = 'none';
-  } else if (/youtube\.com|youtu\.be/.test(url)) {
+  if (!url) { inner = '<div class="trailer-embed">Chưa có trailer</div>'; fallback.style.display = 'none'; }
+  else if (/youtube\.com|youtu\.be/.test(url)) {
     const id = extractYoutubeId(url);
-    inner = id
-      ? '<iframe class="trailer-iframe" src="https://www.youtube.com/embed/' + id + '" allow="autoplay; encrypted-media" allowfullscreen></iframe>'
-      : '<div class="trailer-embed">Link YouTube không hợp lệ</div>';
+    inner = id ? '<iframe class="trailer-iframe" src="https://www.youtube.com/embed/' + id + '" allow="autoplay; encrypted-media" allowfullscreen></iframe>' : '<div class="trailer-embed">Link YouTube không hợp lệ</div>';
     fallback.href = url; fallback.style.display = 'inline-block';
   } else {
     const driveId = extractDriveId(url);
-    inner = driveId
-      ? '<iframe class="trailer-iframe" src="https://drive.google.com/file/d/' + driveId + '/preview" allow="autoplay"></iframe>'
-      : '<div class="trailer-embed">Không xem trước được</div>';
+    inner = driveId ? '<iframe class="trailer-iframe" src="https://drive.google.com/file/d/' + driveId + '/preview" allow="autoplay"></iframe>' : '<div class="trailer-embed">Không xem trước được</div>';
     fallback.href = url; fallback.style.display = 'inline-block';
   }
   embedArea.innerHTML = '<div class="trailer-frame">' + inner + '</div>';
@@ -278,13 +281,12 @@ document.getElementById('trailer-modal').addEventListener('click', function (e) 
 // ---- Điều hướng chung ----
 function switchViewRaw(view) {
   document.querySelectorAll('.view-tabs button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
-  document.getElementById('view-chitiet').style.display = view === 'chitiet' ? '' : 'none';
-  document.getElementById('view-tongquan').style.display = view === 'tongquan' ? '' : 'none';
-  document.getElementById('view-scheme').style.display = view === 'scheme' ? '' : 'none';
-  document.getElementById('view-report').style.display = view === 'report' ? '' : 'none';
+  ['tongquan', 'chitiet', 'scheme', 'report'].forEach(v => {
+    document.getElementById('view-' + v).style.display = v === view ? '' : 'none';
+  });
   if (view === 'chitiet') renderChiTiet();
   else if (view === 'report') renderReport();
-  else if (view === 'tongquan') renderTongQuan();
+  else renderTongQuan();
 }
 document.querySelectorAll('.view-tabs button').forEach(b => b.addEventListener('click', () => {
   navigate({ view: b.dataset.view, focusId: null, scrollY: 0 });
@@ -312,38 +314,38 @@ window.addEventListener('resize', () => { if (currentView() === 'chitiet') equal
 function currentView() { return document.querySelector('.view-tabs button.active').dataset.view; }
 function refreshCurrentView() {
   const v = currentView();
-  if (v === 'chitiet') renderChiTiet(); else if (v === 'tongquan') renderTongQuan(); else if (v === 'report') renderReport();
+  if (v === 'chitiet') renderChiTiet();
+  else if (v === 'report') renderReport();
+  else renderTongQuan();
 }
 
 // ---- Khởi tạo ----
 async function init() {
   try {
-    const res = await fetch(API_URL);
+    const res = await fetch(API_PUBLIC);
     if (!res.ok) throw new Error('Network error: ' + res.status);
     const payload = await res.json();
     allData = payload.items.map((d, i) => Object.assign({ id: i + 1 }, d));
     renderTongQuan();
     updateNavButtons();
-    renderScheme(payload.scheme);
-    if (payload.top10Note && payload.top10Note.trim()) {
-      const cap = document.getElementById('top10Caption');
-      cap.textContent = payload.top10Note;
-      cap.style.display = '';
+    if (payload.scheme && payload.scheme.trim()) {
+      document.getElementById('schemeContent').innerHTML = payload.scheme;
+    } else {
+      document.getElementById('schemeContent').innerHTML = '<span style="color:var(--ink-mute)">Chưa có thông báo.</span>';
     }
   } catch (err) {
     document.getElementById('overview-groups').innerHTML = '<div class="state-msg">Không tải được nội dung. Vui lòng thử lại sau.</div>';
     console.error(err);
   }
 
-  if (REPORT_ACCESS) {
-    document.querySelector('[data-view="report"]').style.display = '';
-    try {
-      const res2 = await fetch(API_URL + '?key=' + REPORT_KEY);
-      const payload2 = await res2.json();
-      reportData = payload2.items.map((d, i) => Object.assign({ id: 'r' + (i + 1) }, d));
-    } catch (err) {
-      console.error(err);
-    }
+  try {
+    const res2 = await fetch(API_REPORT);
+    const payload2 = await res2.json();
+    upcomingData = payload2.upcoming || [];
+    top10Data = payload2.top10 || [];
+    window.__top10Note = payload2.top10Note || '';
+  } catch (err) {
+    console.error('Không tải được dữ liệu Report:', err);
   }
 }
 init();
