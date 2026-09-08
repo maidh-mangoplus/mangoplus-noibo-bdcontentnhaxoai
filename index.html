@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MangoPlus – Cập nhật nội dung</title>
+<title>MangoPlus – Cập nhật nội dung (Nội bộ)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <div class="page">
 
   <div class="doc-header">
-<img src="mplus-logo-1.png" alt="MangoPlus" class="brand-logo" onerror="this.style.display='none'">
+    <img src="mplus-logo-1.png" alt="MangoPlus" class="brand-logo" onerror="this.style.display='none'">
     <div class="sub">Cập nhật nội dung</div>
   </div>
 
@@ -23,7 +23,7 @@
         <button data-view="tongquan" class="active">Tổng quan</button>
         <button data-view="chitiet">Chi tiết</button>
         <button data-view="scheme">Scheme</button>
-        <button data-view="report" style="display:none">Report</button>
+        <button data-view="report">Report</button>
       </div>
       <div class="history-nav">
         <button class="nav-btn" id="nav-back" aria-label="Quay lại" title="Quay lại" disabled>‹</button>
@@ -42,14 +42,15 @@
   </div>
 
   <div id="view-tongquan">
-  <div class="top10-heading"><span class="top10-text">Top 10</span></div>
-    <div class="top10-scroll-wrap" id="top10Wrap">
-      <div class="top10-row top10-row-1" id="top10-row1"></div>
-      <div class="top10-row top10-row-2" id="top10-row2"></div>
+    <div class="trending-header"><span class="trending-heading">Top thịnh hành</span></div>
+    <div class="trending-wrap">
+      <button class="trend-arrow trend-arrow-left" id="trend-prev">‹</button>
+      <div class="trending-scroll" id="trendingScroll"></div>
+      <button class="trend-arrow trend-arrow-right" id="trend-next">›</button>
     </div>
-    <div class="top10-caption" id="top10Caption" style="display:none"></div>
     <div id="overview-groups"><div class="state-msg">Đang tải nội dung…</div></div>
   </div>
+
   <div id="view-chitiet" style="display:none"><div id="grid-chitiet"></div></div>
 
   <div id="view-scheme" style="display:none">
@@ -57,6 +58,14 @@
   </div>
 
   <div id="view-report" style="display:none">
+    <div class="report-top10-wrap" id="reportTop10Wrap" style="display:none">
+      <div class="top10-heading"><span class="top10-text">Top 10</span></div>
+      <div class="top10-scroll-wrap">
+        <div class="top10-row top10-row-1" id="top10-row1"></div>
+        <div class="top10-row top10-row-2" id="top10-row2"></div>
+      </div>
+      <div class="top10-caption" id="top10Caption" style="display:none"></div>
+    </div>
     <a href="https://datastudio.google.com/s/ugpaZDEDHvI" target="_blank" rel="noopener" class="report-link">📊 Xem báo cáo số liệu</a>
     <div id="reportList"><div class="state-msg">Đang tải nội dung…</div></div>
   </div>
